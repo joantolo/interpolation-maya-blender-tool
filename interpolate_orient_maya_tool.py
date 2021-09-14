@@ -29,9 +29,9 @@ ORIENT_OPTIONS = ['None',
 AXIS_OPTIONS = ['X',
                 'Y',
                 'Z']
-AXIS = {"X": [1.0, 0.0, 0.0],
-        "Y": [0.0, 1.0, 0.0],
-        "Z": [0.0, 0.0, 1.0]}
+AXIS = {'X': [1.0, 0.0, 0.0],
+        'Y': [0.0, 1.0, 0.0],
+        'Z': [0.0, 0.0, 1.0]}
 
 # Fileinfo ids to store options
 
@@ -506,7 +506,7 @@ class InterpolationWindow(QMainWindow):
 
         interp_widget = QWidget(self)
         interp_widget.setLayout(interp_layout)
-        interp_widget.setStyleSheet("""background-color: #262626; """)
+        interp_widget.setStyleSheet("""background-color: #262626;""")
         main_layout.addWidget(interp_widget)
 
         """
@@ -551,7 +551,7 @@ class InterpolationWindow(QMainWindow):
 
         orient_widget = QWidget(self)
         orient_widget.setLayout(orient_layout)
-        orient_widget.setStyleSheet("""background-color: #262626; """)
+        orient_widget.setStyleSheet("""background-color: #262626;""")
         main_layout.addWidget(orient_widget)
 
         # Button which will launch execution of interpolations and orientations.
