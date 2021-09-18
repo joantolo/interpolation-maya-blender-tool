@@ -3,13 +3,14 @@ from functools import partial
 from mathutils import Vector, Quaternion
 import numpy as npy
 
-# Global constant.
+""" 
+Global constant.
+"""
 
 AXIS = {
-    "X": [1.0, 0.0, 0.0],
-    "Y": [0.0, 1.0, 0.0],
-    "Z": [0.0, 0.0, 1.0],
-}
+    'X': [1.0, 0.0, 0.0],
+    'Y': [0.0, 1.0, 0.0],
+    'Z': [0.0, 0.0, 1.0]}
 
 
 def inter_lineal(keyframes, frm):
@@ -320,15 +321,15 @@ def get_control_dir(fun_pos_x, fun_pos_y, fun_pos_z, idx, axis, up_axis, frm):
 
     # Lateral aux vector of the curve.
 
-    l = Vector(npy.cross(z, tan))
+    l = Vector(npy.cross(tan, z))
     l.normalize()
 
     # Up aux vector of the curve.
 
-    u = Vector(npy.cross(tan, l))
+    u = Vector(npy.cross(l, tan))
     u.normalize()
 
-    # And then, compute quaternion to orient up vector. 
+    # And then, compute quaternion to orient up vector.
 
     q2 = Quaternion((0.0, 0.0, 0.0, 0.0))
     for i in [0, 1, 2, 3]:
@@ -342,7 +343,7 @@ def get_control_dir(fun_pos_x, fun_pos_y, fun_pos_z, idx, axis, up_axis, frm):
 
 def integrate_length(get_pos_x, get_pos_y, get_pos_z, final_frame):
     """
-    Function that creates a list with 
+    Function that creates a list with
     length displaced from
     each frame.
     """
@@ -405,9 +406,14 @@ def get_pos_reparam(get_pos_ppa, fcurv, frame):
 
 
 class InterpolateOrientOperator(bpy.types.Operator):
-    bl_label = "Interpolate and Orient"
-    bl_idname = "dh.interpolate_orient_operator"
-    bl_description = "Interpolate and orient the object with the action selected"
+    """
+    Class to compute interpolations and orientations when
+    the panel button is pressed.
+    """
+
+    bl_label = 'Interpolate and Orient'
+    bl_idname = 'dh.interpolate_orient_operator'
+    bl_description = 'Interpolate and orient the object with the action selected'
 
     # Error function.
 
@@ -457,13 +463,13 @@ class InterpolateOrientOperator(bpy.types.Operator):
 
                 # Create interpolation functions and driver name.
 
-                if interpolation == "LINEAL":
+                if interpolation == 'LINEAL':
                     func[i] = partial(inter_lineal, keyframes[i])
                     drv_name[i] = context.object.name + '_lineal_loc_' + str(i)
-                elif interpolation == "HERMITE":
+                elif interpolation == 'HERMITE':
                     func[i] = partial(inter_hermite, keyframes[i], velocities[i])
                     drv_name[i] = context.object.name + '_hermite_loc_' + str(i)
-                elif interpolation == "CATROM":
+                elif interpolation == 'CATROM':
                     func[i] = partial(inter_catrom, keyframes[i], tension)
                     drv_name[i] = context.object.name + '_catrom_loc_' + str(i)
 
@@ -495,9 +501,9 @@ class InterpolateOrientOperator(bpy.types.Operator):
                 d = bpy.context.object.driver_add('location', i).driver
                 d.expression = drv_name[i] + '(frame)'
 
-        if orientation == '3':
+        if orientation == '3' or (interpolation == 'NONE' and orientation != '0'):
             bpy.context.object.driver_remove('rotation_quaternion', -1)
-        elif interpolation != 'NONE':
+        else:
             for i in range(4):
                 # Save info of frames of the action.
 
@@ -506,17 +512,18 @@ class InterpolateOrientOperator(bpy.types.Operator):
             for i in range(4):
                 if orientation == '0':
                     q_func[i] = partial(inter_quaternion, q_keyframes, i)
-                    if cons_vel:
+                    if cons_vel and interpolation != 'NONE':
                         q_func[i] = partial(get_pos_ppa, q_func[i], arclen_table)
                         if reparametrization:
                             q_func[i] = partial(get_pos_reparam, q_func[i], values_variable_change)
                     drv_name = context.object.name + '_inter_quaternion_' + str(i)
-                elif orientation == '1':
-                    q_func[i] = partial(get_quat_tan, func[0], func[1], func[2], i, axis)
-                    drv_name = context.object.name + '_orient_quaternion_' + str(i)
-                elif orientation == '2':
-                    q_func[i] = partial(get_control_dir, func[0], func[1], func[2], i, axis, up_axis)
-                    drv_name = context.object.name + '_control_quaternion_' + str(i)
+                elif interpolation != 'NONE':
+                    if orientation == '1':
+                        q_func[i] = partial(get_quat_tan, func[0], func[1], func[2], i, axis)
+                        drv_name = context.object.name + '_orient_quaternion_' + str(i)
+                    elif orientation == '2':
+                        q_func[i] = partial(get_control_dir, func[0], func[1], func[2], i, axis, up_axis)
+                        drv_name = context.object.name + '_control_quaternion_' + str(i)
 
                 # Upload driver and register in its correspondent position.
 
@@ -528,11 +535,15 @@ class InterpolateOrientOperator(bpy.types.Operator):
 
 
 class InterpolateOrientPanel(bpy.types.Panel):
-    bl_label = "Interpolate and orientate"
-    bl_idname = "OBJECT_PT_interp_action"
+    """
+    Class to represent the panel in Blender.
+    """
+
+    bl_label = 'Interpolate and orientate'
+    bl_idname = 'OBJECT_PT_interp_action'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_context = "object"
+    bl_context = 'object'
 
     def draw(self, context):
 
@@ -543,121 +554,121 @@ class InterpolateOrientPanel(bpy.types.Panel):
 
         box = layout.box()
         row = box.row(align=True)
-        row.label(text="Interpolate action", icon='CURVE_BEZCURVE')
+        row.label(text='Interpolate action', icon='CURVE_BEZCURVE')
 
         # Name of selected object.
 
         split = box.split(factor=0.3, align=True)
-        split.label(text="Active object: ")
+        split.label(text='Active object: ')
         split.label(text=obj.name)
 
         # Two lists: one of actions and another one of different interpolations as declared below.
 
         row = box.column()
-        row.prop(data=context.scene, property="item_actions")
-        row.prop(data=context.scene, property="item_interpolations")
+        row.prop(data=context.scene, property='item_actions')
+        row.prop(data=context.scene, property='item_interpolations')
 
         # Coordinates of velocity and value of tension.
 
         row = box.row()
         if context.scene.item_interpolations == 'HERMITE':
-            row.prop(obj, "velocity")
+            row.prop(obj, 'velocity')
         elif context.scene.item_interpolations == 'CATROM':
             split = row.split(factor=0.3, align=True)
             col = split.column()
             col = split.column()
-            col.prop(data=context.scene, property="tension")
+            col.prop(data=context.scene, property='tension')
 
         row = box.row()
         split = row.split(factor=0.5, align=True)
         col = split.column()
-        col.prop(data=context.scene, property="constant_velocity")
-        col.label(text="Number of frames on the curve: " + str(context.scene.end_frame))
+        col.prop(data=context.scene, property='constant_velocity')
+        col.label(text='Number of frames on the curve: ' + str(context.scene.end_frame))
 
         col = split.column()
-        col.prop(data=context.scene, property="reparametrization")
+        col.prop(data=context.scene, property='reparametrization')
 
         if context.scene.reparametrization:
-            col.prop(data=context.object, property="value_variable_change")
+            col.prop(data=context.object, property='value_variable_change')
 
         # ----------------PANEL OF INTERPOLATION OF QUATERNIONS AND ORIENT----------------#
 
         box = layout.box()
         row = box.row(align=True)
-        row.label(text="Orientation of the object:", icon='MESH_MONKEY')
+        row.label(text='Orientation of the object:', icon='MESH_MONKEY')
 
         # Axis to orient and type of interpolation.
 
         row = box.column()
-        row.prop(data=context.scene, property="item_orientations")
+        row.prop(data=context.scene, property='item_orientations')
         if (context.scene.item_orientations == '1') or (context.scene.item_orientations == '2'):
-            row.prop(data=context.scene, property="item_axis")
+            row.prop(data=context.scene, property='item_axis')
             if context.scene.item_orientations == '2':
-                row.prop(data=context.scene, property="item_up_axis")
+                row.prop(data=context.scene, property='item_up_axis')
 
         # Button/operator.
 
         row = layout.row()
-        row.operator("dh.interpolate_orient_operator")
+        row.operator('dh.interpolate_orient_operator')
 
 
 def register():
     bpy.utils.register_class(InterpolateOrientOperator)
     bpy.utils.register_class(InterpolateOrientPanel)
 
-    bpy.types.Scene.item_actions = bpy.props.EnumProperty(name="Action", description="Action to interpolate",
-                                                          items=[(obj.name, obj.name, "") for obj in bpy.data.actions],
+    bpy.types.Scene.item_actions = bpy.props.EnumProperty(name='Action', description='Action to interpolate',
+                                                          items=[(obj.name, obj.name, '') for obj in bpy.data.actions],
                                                           update=None)
 
-    bpy.types.Scene.item_interpolations = bpy.props.EnumProperty(name="Interpolation",
-                                                                 description="Interpolation method to use",
-                                                                 items=[("NONE", "None", ""),
-                                                                        ("LINEAL", "Lineal", ""),
-                                                                        ("HERMITE", "Hermite", ""),
-                                                                        ("CATROM", "Catmull-Rom", "")], default="NONE")
+    bpy.types.Scene.item_interpolations = bpy.props.EnumProperty(name='Interpolation',
+                                                                 description='Interpolation method to use',
+                                                                 items=[('NONE', 'None', ''),
+                                                                        ('LINEAL', 'Lineal', ''),
+                                                                        ('HERMITE', 'Hermite', ''),
+                                                                        ('CATROM', 'Catmull-Rom', '')], default='NONE')
 
-    bpy.types.Scene.tension = bpy.props.FloatProperty(name="Tension",
-                                                      description="Parameter to use Catmull-Rom interpolation",
+    bpy.types.Scene.tension = bpy.props.FloatProperty(name='Tension',
+                                                      description='Parameter to use Catmull-Rom interpolation',
                                                       default=0.5, min=0.0, max=2.0)
 
     bpy.types.Object.velocity = bpy.props.FloatVectorProperty(name='Velocity', description='Velocity of the object')
 
-    bpy.types.Scene.item_axis = bpy.props.EnumProperty(name="Tangent axis",
-                                                       description="Axis that will be used to orient the object",
-                                                       items=[("Z", "Z", "Z axis"), ("Y", "Y", "Y axis"),
-                                                              ("X", "X", "X axis")], default="X")
+    bpy.types.Scene.item_axis = bpy.props.EnumProperty(name='Tangent axis',
+                                                       description='Axis that will be used to orient the object',
+                                                       items=[('Z', 'Z', 'Z axis'), ('Y', 'Y', 'Y axis'),
+                                                              ('X', 'X', 'X axis')], default='X')
 
-    bpy.types.Scene.item_up_axis = bpy.props.EnumProperty(name="Up axis",
-                                                          description="Auxiliar axis to orient the object",
-                                                          items=[("Z", "Z", "Z axis"), ("Y", "Y", "Y axis"),
-                                                                 ("X", "X", "X axis")], default="Z")
+    bpy.types.Scene.item_up_axis = bpy.props.EnumProperty(name='Up axis',
+                                                          description='Auxiliar axis to orient the object',
+                                                          items=[('Z', 'Z', 'Z axis'), ('Y', 'Y', 'Y axis'),
+                                                                 ('X', 'X', 'X axis')], default='Z')
 
-    bpy.types.Scene.item_orientations = bpy.props.EnumProperty(name="Type of orientation",
-                                                               description="How the object will be oriented",
+    bpy.types.Scene.item_orientations = bpy.props.EnumProperty(name='Type of orientation',
+                                                               description='How the object will be oriented',
                                                                items=[
-                                                                   ("3", "None", "Don't interpolate orientation"),
-                                                                   ("2", "Align with curve improved",
-                                                                    "Controlling orientation of the object depending on selected up axis"),
-                                                                   ("1", "Align with curve",
-                                                                    "Orient the object through the curve"),
-                                                                   ("0", "Interpolate quaternions",
-                                                                    "Only interpolate quaternions")],
-                                                               default="3")
+                                                                   ('3', 'None', "Don't interpolate orientation"),
+                                                                   ('2', 'Align with curve improved',
+                                                                    'Controlling orientation of the object depending on selected up axis'),
+                                                                   ('1', 'Align with curve',
+                                                                    'Orient the object through the curve'),
+                                                                   ('0', 'Interpolate quaternions',
+                                                                    'Only interpolate quaternions')],
+                                                               default='3')
 
-    bpy.types.Object.value_variable_change = bpy.props.FloatProperty(name="Variable change",
-                                                                     description="Value of variable change",
+    bpy.types.Object.value_variable_change = bpy.props.FloatProperty(name='Variable change',
+                                                                     description='Value of variable change',
                                                                      default=0.0)
 
-    bpy.types.Scene.reparametrization = bpy.props.BoolProperty(name="Reparametrization",
-                                                               description="Reparametrization of the curve",
+    bpy.types.Scene.reparametrization = bpy.props.BoolProperty(name='Reparametrization',
+                                                               description='Reparametrization of the curve',
                                                                default=False)
 
-    bpy.types.Scene.constant_velocity = bpy.props.BoolProperty(name="Constant Velocity",
-                                                               description="Set constant velocity to the object",
+    bpy.types.Scene.constant_velocity = bpy.props.BoolProperty(name='Constant Velocity',
+                                                               description='Set constant velocity to the object',
                                                                default=False)
 
-    bpy.types.Scene.end_frame = bpy.props.IntProperty(name="Number of frames on the curve",
-                                                      description="Number of frames till the end of the curve")
+    bpy.types.Scene.end_frame = bpy.props.IntProperty(name='Number of frames on the curve',
+                                                      description='Number of frames till the end of the curve')
 
 
 def unregister():
@@ -665,5 +676,5 @@ def unregister():
     bpy.utils.unregister_class(InterpolateOrientPanel)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     register()

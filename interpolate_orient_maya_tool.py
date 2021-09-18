@@ -368,16 +368,16 @@ def get_control_dir(fun_pos_x, fun_pos_y, fun_pos_z, idx, axis, up_axis, frm):
 
     tan = om.MVector([get_tan(fun_pos_x, frm), get_tan(fun_pos_y, frm), get_tan(fun_pos_z, frm)])
 
-    z = om.MVector([0.0, 0.0, 1.0])
+    y = om.MVector([0.0, 1.0, 0.0])
 
     # Lateral aux vector of the curve.
 
-    l = z ^ tan
+    l = tan ^ y
     l.normalize()
 
     # Up aux vector of the curve.
 
-    u = tan ^ l
+    u = l ^ tan
     u.normalize()
 
     # And then, compute quaternion to orient up vector.
@@ -385,13 +385,26 @@ def get_control_dir(fun_pos_x, fun_pos_y, fun_pos_z, idx, axis, up_axis, frm):
     q2 = om.MQuaternion(v_up_axis, u)
     q2.normalizeIt()
 
-    # WARNING: This rotation is not completed yet.
+    # Finally, combine both quaternion rotations.
 
-    q = (q1 * q2 * q1.conjugate()) * q1
+    q = mul_quaternions(q2, q1)
 
     # Return asked coord converted as Euler rotation.
 
     return math.degrees(q.asEulerRotation()[idx])
+
+
+def mul_quaternions(q1, q2):
+    """
+    Function to multiply two quaternion rotations.
+    """
+
+    q = om.MQuaternion()
+    q.w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z
+    q.x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y
+    q.y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x
+    q.z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w
+    return q
 
 
 def get_maya_window():
@@ -405,18 +418,18 @@ def get_maya_window():
         return wrapInstance(int(ptr), QWidget)
 
 
-class InterpolationWindow(QMainWindow):
+class InterpolateOrientWindow(QMainWindow):
     """
     Class to represent an interpolation and orientation
     tool in Maya.
     """
 
-    toolName = 'Interpolation and orientation tool'
+    toolName = 'Interpole_orient_tool'
 
     def __init__(self, parent=get_maya_window()):
         self.delete_duplicated_windows()
 
-        super(InterpolationWindow, self).__init__(parent)
+        super(InterpolateOrientWindow, self).__init__(parent)
         self.setObjectName(self.__class__.toolName)
         self.setWindowTitle('Interpolation and Orientation Tool')
 
@@ -1001,4 +1014,4 @@ class InterpolationWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    window = InterpolationWindow()
+    window = InterpolateOrientWindow()
